@@ -1,23 +1,39 @@
+// React imports
+import { useState, useRef } from "react";
+
+// Expo imports
+import * as MediaLibrary from "expo-media-library";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, View } from "react-native";
-import ImageViewer from "./components/ImageViewer";
-import Button from "./components/Button";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
-import IconButton from "./components/IconButton";
-import CircleButton from "./components/CircleButton";
-import EmojiPicker from "./components/EmojiPicker";
-import EmojiList from "./components/EmojiList";
-import EmojiSticker from "./components/EmojiSticker";
+
+// React Native imports
+import { StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+// Local component imports
+import Button from "./components/Button";
+import CircleButton from "./components/CircleButton";
+import EmojiList from "./components/EmojiList";
+import EmojiPicker from "./components/EmojiPicker";
+import EmojiSticker from "./components/EmojiSticker";
+import IconButton from "./components/IconButton";
+import ImageViewer from "./components/ImageViewer";
+import { captureRef } from "react-native-view-shot";
 
 const PlaceholderImage = require("./assets/images/background-image.png");
 
 export default function App() {
+  const [status, requestPermission] = MediaLibrary.usePermissions();
   const [selectedImage, setSelectedImage] = useState(null);
   const [showAppOptions, setShowAppOptions] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [pickedEmoji, setPickedEmoji] = useState(null);
+
+  if (status === null) {
+    requestPermission();
+  }
+
+  const imageRef = useRef();
 
   const pickImageAsync = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -48,7 +64,19 @@ export default function App() {
   };
 
   const onSaveImageAsync = async () => {
-    // we will implement this later
+    try {
+      const localUri = await captureRef(imageRef, {
+        height: 440,
+        quality: 1,
+      });
+
+      await MediaLibrary.saveToLibraryAsync(localUri);
+      if (localUri) {
+        alert("Saved!");
+      }
+    } catch (e) {
+      console.log(e);
+    }
   };
 
   return (
@@ -56,14 +84,16 @@ export default function App() {
       <View style={styles.container}>
         <StatusBar style="light" />
         <View style={styles.imageContainer}>
-          <ImageViewer
-            placeholderImageSource={PlaceholderImage}
-            selectedImage={selectedImage}
-          />
+          <View ref={imageRef} collapsable={false}>
+            <ImageViewer
+              placeholderImageSource={PlaceholderImage}
+              selectedImage={selectedImage}
+            />
 
-          {pickedEmoji && (
-            <EmojiSticker imageSize={40} stickerSource={pickedEmoji} />
-          )}
+            {pickedEmoji && (
+              <EmojiSticker imageSize={40} stickerSource={pickedEmoji} />
+            )}
+          </View>
         </View>
 
         {/* buttons & modal */}
